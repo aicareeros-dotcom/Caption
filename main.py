@@ -3,14 +3,14 @@ import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from pyrogram.enums import MessageMediaType
-from keep_alive import keep_alive  # ✅ Add this
 
 # 🔐 Load environment variables from Replit secrets
 API_ID = int(os.environ.get("API_ID", "123456"))
 API_HASH = os.environ.get("API_HASH", "your_api_hash")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "your_bot_token")
 
-app = Client("haklesh_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+# ✅ ONLY CHANGE HERE (session fix for Render)
+app = Client(":memory:", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 user_remove_words = {}
 user_caption_store = {}
@@ -84,9 +84,6 @@ async def process_queue(client, user_id):
             await msg.reply(f"❌ Error: {e}")
 
         queue.task_done()
-
-# 🔁 Replit keep alive
-keep_alive()
 
 if __name__ == "__main__":
     print("🚀 Starting Haklesh Bot...")
