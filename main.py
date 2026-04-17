@@ -6,95 +6,92 @@ from pyrogram.enums import MessageMediaType
 from flask import Flask
 from threading import Thread
 
-# --- FLASK SERVER ---
+# --- RENDER HEALTH CHECK ---
 web_app = Flask(__name__)
-
 @web_app.route('/')
-def home():
-    return "Bot is Alive!"
+def home(): return "Haklesh Bot is Active!"
 
 def run_web():
     web_app.run(host="0.0.0.0", port=8080)
 
-# --- BOT CONFIG ---
-API_ID = int(os.environ.get("API_ID", "12345"))
-API_HASH = os.environ.get("API_HASH", "your_hash")
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "your_token")
+# --- CONFIG ---
+API_ID = int(os.environ.get("API_ID", "123456"))
+API_HASH = os.environ.get("API_HASH", "your_api_hash")
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "your_bot_token")
 
 app = Client("haklesh_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-user_remove_words = {}
-user_caption_store = {}
+# Jo naam aapko lagana hai
+MY_NAME = "𝆺⎯⎯꯭፝֟͡ 𝐇᷎𝐚𝆭𝆆𝐤͢𝐥𝐞𝐬𝐡⃨፝֟⃕⃔⎯꯭⎯ 𝆺"
+
+# Jo usernames hatane hain
+BAD_WORDS = ["@avengers_ownerr", "@Harsh_bhadanaa"]
+
 user_queues = {}
 
-def clean_caption(original: str, remove_words: list) -> str:
-    if not original: return ""
-    for word in remove_words:
-        if word in original:
-            original = original.split(word)[0].strip()
-    return original.strip()
+def process_text(text: str) -> str:
+    if not text:
+        return ""
+    new_text = text
+    for word in BAD_WORDS:
+        # Purana username dhoond kar naye naam se replace karega
+        new_text = new_text.replace(word, MY_NAME)
+    return new_text.strip()
 
-async def process_queue(client, user_id):
+async def queue_worker(client, user_id):
     while True:
         queue = user_queues.get(user_id)
         if not queue: break
-        msg = await queue.get()
+
+        msg: Message = await queue.get()
         try:
-            remove_words = user_remove_words.get(user_id, [])
-            caption_to_add = user_caption_store.get(user_id, {}).get("caption", "")
-            original = msg.caption or ""
-            cleaned = clean_caption(original, remove_words)
-            final_caption = f"{cleaned}\n\n{caption_to_add}".strip()
+            # Original caption uthao aur replace karo
+            final_caption = process_text(msg.caption)
 
             if msg.media == MessageMediaType.VIDEO:
-                await client.send_video(chat_id=msg.chat.id, video=msg.video.file_id, caption=final_caption)
+                await client.send_video(
+                    chat_id=msg.chat.id,
+                    video=msg.video.file_id,
+                    caption=final_caption
+                )
             elif msg.media == MessageMediaType.DOCUMENT:
-                await client.send_document(chat_id=msg.chat.id, document=msg.document.file_id, caption=final_caption)
+                await client.send_document(
+                    chat_id=msg.chat.id,
+                    document=msg.document.file_id,
+                    caption=final_caption
+                )
             
-            await asyncio.sleep(2)
-            await msg.delete()
+            await asyncio.sleep(1.5) # Anti-flood delay
+            await msg.delete() # Purana message delete (optional)
         except Exception as e:
             print(f"Error: {e}")
         finally:
             queue.task_done()
 
+# --- BOT HANDLERS ---
+
 @app.on_message(filters.command("start") & filters.private)
-async def start_handler(c, m):
-    await m.reply("Bot is ready! Send your caption first.")
-
-@app.on_message(filters.command("setremove") & filters.private)
-async def set_remove(c, m):
-    words = m.text.split()[1:]
-    user_remove_words[m.from_user.id] = words
-    await m.reply(f"✅ Removed words set: {words}")
-
-@app.on_message(filters.private & filters.text)
-async def receive_caption(c, m):
-    if m.text.startswith("/"): return
-    user_id = m.from_user.id
-    user_caption_store[user_id] = {"step": "ready", "caption": m.text}
-    if user_id not in user_queues:
-        user_queues[user_id] = asyncio.Queue()
-        asyncio.create_task(process_queue(c, user_id))
-    await m.reply("✅ Caption set! Now send media.")
+async def start(client, message):
+    await message.reply("🚀 **Bot Start Ho Gaya Hai!**\n\nAb Video ya PDF bhejein, main usernames badal kar wapas bhej dunga.")
 
 @app.on_message(filters.private & (filters.video | filters.document))
-async def enqueue_media(c, m):
-    user_id = m.from_user.id
-    if user_id not in user_caption_store:
-        return await m.reply("❌ Send caption first!")
-    await user_queues[user_id].put(m)
+async def handle_media(client, message: Message):
+    user_id = message.from_user.id
+    
+    # Har user ke liye queue check/create karna
+    if user_id not in user_queues:
+        user_queues[user_id] = asyncio.Queue()
+        asyncio.create_task(queue_worker(client, user_id))
+    
+    await user_queues[user_id].put(message)
 
-# --- CORRECT WAY TO RUN ON RENDER ---
-async def main():
-    # Start Flask thread
+# --- STARTUP LOGIC ---
+async def start_services():
     Thread(target=run_web, daemon=True).start()
-    # Start Bot
     await app.start()
-    print("🚀 Bot Started!")
-    await asyncio.Event().wait() # Keep bot running
+    print("✅ Bot is running on Render!")
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
-    
+    loop.run_until_complete(start_services())
