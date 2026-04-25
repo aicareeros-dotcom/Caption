@@ -25,7 +25,7 @@ app = Client("haklesh_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 
 # ---------------- CUSTOM ----------------
 MY_NAME = "𝆺⎯⎯꯭፝֟͡ 𝐇᷎𝐚𝆭𝆆𝐤͢𝐥𝐞𝐬𝐡⃨፝֟⃕⃔⎯꯭⎯ 𝆺"
-BAD_WORDS = ["Free", "@ErAnkitEh", "@EhcoderGec", "⌯ 𝚬 𝚪 𝚼 𝚾 · ༎🖤", " ⌯ ꪀꪖᴠꫀꫀꪀ·༎🖤"]
+BAD_WORDS = ["Free", "@ErAnkitEh", "@EhcoderGec", "⌯ 𝚬 𝚪 𝚼 𝚾 · ༎🖤", " ⌯ ꪀꪖᴠꫀꫀꪀ·༎🖤", "𝙎𝘼𝙄𝙉𝙄 𝘽𝙊𝙏𝙎🐦"]
 
 # ---------------- STORAGE ----------------
 user_queues = {}
